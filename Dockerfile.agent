@@ -1,0 +1,15 @@
+# syntax=docker/dockerfile:1.7-labs
+
+FROM python:3.11-slim AS agent
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+COPY agents/requirements.txt ./agents/requirements.txt
+RUN pip install --no-cache-dir -r agents/requirements.txt
+
+COPY agents ./agents
+
+CMD ["python", "-u", "agents/worker.py"]
+
+

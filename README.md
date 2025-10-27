@@ -26,6 +26,7 @@ Dieses Repository ist das Startprojekt für den Kurs. Es enthält eine Next.js�
 - `n8n` – n8n Automation (nur Loopback: `127.0.0.1:5678`)
 - `pgadmin` – pgAdmin (nur Loopback: `127.0.0.1:5050`)
 - `mailpit` – Fake SMTP + Mail‑UI für lokale Tests (`http://localhost:8025`)
+- `livekit` – LiveKit Server (nur Loopback: `127.0.0.1:7880`)
 
 ### Hetzner‑Server (Ubuntu) – Deployment
 1. System aktualisieren und Docker installieren.
@@ -55,6 +56,7 @@ Dieses Repository ist das Startprojekt für den Kurs. Es enthält eine Next.js�
 - `PGADMIN_DEFAULT_EMAIL`, `PGADMIN_DEFAULT_PASSWORD`
 - n8n E‑Mail: `N8N_EMAIL_MODE`, `N8N_SMTP_HOST`, `N8N_SMTP_PORT`, `N8N_SMTP_SSL`, `N8N_SMTP_USER`, `N8N_SMTP_PASS`, `N8N_SMTP_SENDER`
 - n8n Links: `N8N_PROTOCOL`, `N8N_HOST`, optional `N8N_WEBHOOK_URL`
+- LiveKit: `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, optional `LIVEKIT_DEFAULT_ROOM`
 
 ### Prisma & Datenbank
 - Erste Migration erzeugen (einmalig):

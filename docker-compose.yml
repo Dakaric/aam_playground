@@ -95,6 +95,45 @@ services:
       - internal
     restart: unless-stopped
 
+  livekit:
+    image: livekit/livekit-server:latest
+    # Dev-Modus: einfache lokale Nutzung, generiert Standard-Keys
+    # Hinweis: Für Produktion bitte eine explizite livekit.yaml + Keys verwenden
+    command: ["--dev"]
+    ports:
+      - "127.0.0.1:7880:7880/tcp"     # Signal/HTTP (WS)
+      - "127.0.0.1:50000-60000:50000-60000/udp" # RTP/Media (lokal)
+    networks:
+      - internal
+    restart: unless-stopped
+
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    env_file:
+      - .env
+    environment:
+      # LiveKit connection (shared mit web)
+      LIVEKIT_URL: ${LIVEKIT_URL}
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      # OpenAI
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # Agent config
+      AGENT_USE_REALTIME: ${AGENT_USE_REALTIME}
+      OPENAI_REALTIME_MODEL: ${OPENAI_REALTIME_MODEL}
+      OPENAI_VOICE: ${OPENAI_VOICE}
+      AGENT_STT_MODEL: ${AGENT_STT_MODEL}
+      AGENT_LLM_MODEL: ${AGENT_LLM_MODEL}
+      AGENT_TTS_MODEL: ${AGENT_TTS_MODEL}
+      AGENT_INSTRUCTIONS: ${AGENT_INSTRUCTIONS}
+    depends_on:
+      - livekit
+    networks:
+      - internal
+    restart: unless-stopped
+
 networks:
   internal:
 

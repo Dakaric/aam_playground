@@ -1,0 +1,1640 @@
+{
+  "name": "Multimodal RAG Agent with Google Drive, Supabase",
+  "nodes": [
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.content || $json.data || $json.text || $json.concatenated_data }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "=file_id",
+                "value": "={{ $('Set File ID').first().json.file_id }}"
+              },
+              {
+                "name": "file_title",
+                "value": "={{ $('Set File ID').first().json.file_title }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "e64d0390-07b0-4c53-ae4c-751286bfbb28",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        1248
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Set File ID').item.json.file_id }}",
+          "mode": "id"
+        },
+        "options": {
+          "googleFileConversion": {
+            "conversion": {
+              "docsToFormat": "text/plain"
+            }
+          }
+        }
+      },
+      "id": "d5b822f5-320f-46fd-9f33-bf24c5e9f4ac",
+      "name": "Download File",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        480,
+        1040
+      ],
+      "executeOnce": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "kXJUSVgo0fGbieVA",
+          "name": "Google Drive cl.shorty01@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1HVq6bZM-hHXd1omnQDp3JXJnmB_YZL9h",
+          "mode": "list",
+          "cachedResultName": "AAM-RAG-Input",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1HVq6bZM-hHXd1omnQDp3JXJnmB_YZL9h"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "id": "808af419-944a-4d43-89dc-7c10e2658c51",
+      "name": "File Created",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        880
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "kXJUSVgo0fGbieVA",
+          "name": "Google Drive cl.shorty01@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "1HVq6bZM-hHXd1omnQDp3JXJnmB_YZL9h",
+          "mode": "list",
+          "cachedResultName": "AAM-RAG-Input",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1HVq6bZM-hHXd1omnQDp3JXJnmB_YZL9h"
+        },
+        "event": "fileUpdated",
+        "options": {}
+      },
+      "id": "3e4c84c5-3d83-40b1-98d3-c872c1bb5c45",
+      "name": "File Updated",
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        1040
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "kXJUSVgo0fGbieVA",
+          "name": "Google Drive cl.shorty01@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10646eae-ae46-4327-a4dc-9987c2d76173",
+              "name": "file_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "f4536df5-d0b1-4392-bf17-b8137fb31a44",
+              "name": "file_type",
+              "value": "={{ $json.mimeType }}",
+              "type": "string"
+            },
+            {
+              "id": "77d782de-169d-4a46-8a8e-a3831c04d90f",
+              "name": "file_title",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            },
+            {
+              "id": "9bde4d7f-e4f3-4ebd-9338-dce1350f9eab",
+              "name": "file_url",
+              "value": "={{ $json.webViewLink }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4e17f235-b6ed-4d59-8173-ca85fde2c3dc",
+      "name": "Set File ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -240,
+        1040
+      ]
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "7b00889f-288c-493f-90f8-cae3bde8b9f3",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "fieldsToSummarize": {
+          "values": [
+            {
+              "aggregation": "concatenate",
+              "field": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a7a97b28-b15e-4430-8c5b-ee6a02d4ac44",
+      "name": "Summarize",
+      "type": "n8n-nodes-base.summarize",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "2ae7faa7-a936-4621-a680-60c512163034",
+                    "leftValue": "={{ $('Set File ID').item.json.file_type }}",
+                    "rightValue": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Excel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "a6c1bdb3-51c0-4084-8257-d5295e850763",
+                    "leftValue": "{{ $('Set File ID').item.json.file_type }}",
+                    "rightValue": "text/xlsx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Excel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "fc193b06-363b-4699-a97d-e5a850138b0e",
+                    "leftValue": "={{ $('Set File ID').item.json.file_type }}",
+                    "rightValue": "=application/vnd.google-apps.spreadsheet",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CSV"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "id": "8cf6e5d7-08a5-4962-b130-e2a92c19e2a1",
+                    "leftValue": "={{ $('Set File ID').item.json.file_type }}",
+                    "rightValue": "text/csv",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "CSV"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "f2a1917c-2c1f-433b-9761-dc5d353254be",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        672,
+        1024
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "xlsx",
+        "options": {}
+      },
+      "id": "1d7e0970-8b6d-43b2-9d0b-20a06b3fa180",
+      "name": "Extract from Excel",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        864
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f422e2e0-381c-46ea-8f38-3f58c501d8b9",
+              "name": "schema",
+              "value": "={{ $('Extract from Excel').isExecuted ? $('Extract from Excel').first().json.keys().toJsonString() : $('Extract from CSV').first().json.keys().toJsonString() }}",
+              "type": "string"
+            },
+            {
+              "id": "bb07c71e-5b60-4795-864c-cc3845b6bc46",
+              "name": "data",
+              "value": "={{ $json.concatenated_data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1776,
+        768
+      ],
+      "id": "0fdb43ce-19d0-4f21-93bf-6cc697022274",
+      "name": "Set Schema"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        1040
+      ],
+      "id": "2d432eb8-c405-4b09-98e0-9673a19426b7",
+      "name": "Extract from CSV"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -416,
+        880
+      ],
+      "id": "f97797c0-32a4-45ee-9569-302ce8ba7e77",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "document_metadata",
+          "mode": "list",
+          "cachedResultName": "document_metadata"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Set File ID').item.json.file_id }}",
+            "title": "={{ $('Set File ID').item.json.file_title }}",
+            "url": "={{ $('Set File ID').item.json.file_url }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "schema",
+              "displayName": "schema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        272,
+        896
+      ],
+      "id": "b92e3149-e427-4cb1-8b12-f33a54e29312",
+      "name": "Insert Document Metadata",
+      "executeOnce": true,
+      "credentials": {
+        "postgres": {
+          "id": "safcm5oCM7iLGdq0",
+          "name": "Postgres Supabase selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "document_rows",
+          "mode": "list",
+          "cachedResultName": "document_rows"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "dataset_id": "={{ $('Set File ID').item.json.file_id }}",
+            "row_data": "={{ $json.toJsonString().replaceAll(/'/g, \"''\") }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "dataset_id",
+              "displayName": "dataset_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_data",
+              "displayName": "row_data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1360,
+        1040
+      ],
+      "id": "ed42137c-97fe-4bd0-bc48-20772ffa280e",
+      "name": "Insert Table Rows",
+      "credentials": {
+        "postgres": {
+          "id": "safcm5oCM7iLGdq0",
+          "name": "Postgres Supabase selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "document_metadata",
+          "mode": "list",
+          "cachedResultName": "document_metadata"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $('Set File ID').item.json.file_id }}",
+            "schema": "={{ $json.schema }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": false
+            },
+            {
+              "id": "schema",
+              "displayName": "schema",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1968,
+        768
+      ],
+      "id": "333f9c4d-ddfd-4d66-9ef8-b1bb72544387",
+      "name": "Update Schema for Document Metadata",
+      "credentials": {
+        "postgres": {
+          "id": "safcm5oCM7iLGdq0",
+          "name": "Postgres Supabase selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DO $$\nBEGIN\n    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'documents_pg') THEN\n        EXECUTE 'DELETE FROM documents_pg WHERE metadata->>''file_id'' LIKE ''%' || $1 || '%''';\n    END IF;\nEND\n$$;",
+        "options": {
+          "queryReplacement": "={{ $json.file_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -64,
+        896
+      ],
+      "id": "665e337e-cbf8-4598-90b1-d02065726ba8",
+      "name": "Delete Old Data Rows",
+      "credentials": {
+        "postgres": {
+          "id": "safcm5oCM7iLGdq0",
+          "name": "Postgres Supabase selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM document_rows\nWHERE dataset_id LIKE '%' || $1 || '%';",
+        "options": {
+          "queryReplacement": "={{ $('Set File ID').item.json.file_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        112,
+        1056
+      ],
+      "id": "d7b52527-d24a-472a-9586-f2bb020833ea",
+      "name": "Delete Old Doc Rows",
+      "credentials": {
+        "postgres": {
+          "id": "safcm5oCM7iLGdq0",
+          "name": "Postgres Supabase selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        2416,
+        1424
+      ],
+      "id": "861380c0-4153-4c92-94c6-d7fa976698e1",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "code": {
+          "execute": {
+            "code": "// Entire code without PromptTemplate usage and with array merge for markdown\n\n// Read input - supports either a single string or an array of strings\nconst markdownInput = $input.item.json?.markdown;\nconst maxChunkSize = 1000;\nconst minChunkSize = 400;\n\nif (!markdownInput || (Array.isArray(markdownInput) && markdownInput.length === 0)) {\n  throw new Error('No document found in input');\n}\n\n// Merge into one string\nconst documentContent = Array.isArray(markdownInput)\n  ? markdownInput.join('\\n\\n') // keep paragraph boundaries\n  : String(markdownInput);\n\nconst llm = await this.getInputConnectionData('ai_languageModel', 0);\n\nfunction cleanText(text) {\n  return text.replace(/\\s+/g, ' ').trim();\n}\n\nconst chunks = [];\nlet remainingText = cleanText(documentContent);\nlet chunkNumber = 1;\n\nif (remainingText.length <= maxChunkSize) {\n  chunks.push({\n    content: remainingText,\n    chunk: chunkNumber,\n    chunk_size: remainingText.length,\n  });\n} else {\n  while (remainingText) {\n    const textToAnalyze = remainingText.substring(0, maxChunkSize);\n\n    const promptText = `You are analyzing a document to find the best transition point to split it into meaningful sections.\n\nYour goal: Keep related content together and split where topics naturally transition.\n\nRead this text carefully and identify where one topic/section ends and another begins:\n\n${textToAnalyze}\n\nFind the best transition point that occurs BEFORE character position ${maxChunkSize}.\n\nLook for:\n- Section headings or topic changes\n- Paragraph boundaries where the subject shifts\n- Complete conclusions before new ideas start\n- Natural breaks between different aspects of the content\n\nOutput the LAST WORD that appears right before your chosen split point.\nJust the single word itself, nothing else.\nExample: If you want to split after \"The company was founded in 2022.\" then output: \"2022\"`; // end prompt\n\n    let breakPoint = maxChunkSize;\n\n    try {\n      const response = await llm.invoke(promptText);\n      const responseText = response?.content || response?.text || String(response || '');\n      const breakWord = (responseText || '').trim();\n\n      if (breakWord) {\n        // Find the last occurrence of this word in the analyzed window\n        const wordIndex = textToAnalyze.lastIndexOf(breakWord);\n        if (wordIndex !== -1) {\n          // Split after the word, then skip trailing punctuation and one space\n          breakPoint = wordIndex + breakWord.length;\n\n          while (\n            breakPoint < textToAnalyze.length &&\n            (\n              textToAnalyze[breakPoint] === '.' ||\n              textToAnalyze[breakPoint] === '!' ||\n              textToAnalyze[breakPoint] === '?' ||\n              textToAnalyze[breakPoint] === ',' ||\n              textToAnalyze[breakPoint] === ';' ||\n              textToAnalyze[breakPoint] === ':' ||\n              textToAnalyze[breakPoint] === ' '\n            )\n          ) {\n            breakPoint++;\n            if (textToAnalyze[breakPoint - 1] === ' ') break;\n          }\n\n          breakPoint = Math.min(breakPoint, maxChunkSize);\n        }\n      }\n    } catch (error) {\n      console.log('LLM failed to determine breakpoint, using max size:', error.message);\n      breakPoint = maxChunkSize;\n    }\n\n    const chunk = remainingText.substring(0, breakPoint).trim();\n\n    if (chunk) {\n      chunks.push({\n        content: chunk,\n        chunk: chunkNumber,\n        chunk_size: chunk.length,\n      });\n      chunkNumber++;\n    }\n\n    remainingText = remainingText.substring(breakPoint).trim();\n\n    if (!remainingText) {\n      break;\n    }\n  }\n}\n\n// Merge chunks that are below minimum size with adjacent chunks if possible\nlet i = 0;\nwhile (i < chunks.length) {\n  if (chunks[i].chunk_size < minChunkSize) {\n    // Try to merge with next chunk first if it exists and will not exceed max\n    if (\n      i + 1 < chunks.length &&\n      chunks[i].chunk_size + chunks[i + 1].chunk_size <= maxChunkSize\n    ) {\n      chunks[i].content += ' ' + chunks[i + 1].content;\n      chunks[i].chunk_size = chunks[i].content.length;\n      chunks.splice(i + 1, 1);\n      // Recheck this index\n    } else if (\n      i > 0 &&\n      chunks[i - 1].chunk_size + chunks[i].chunk_size <= maxChunkSize\n    ) {\n      // Merge current into previous\n      chunks[i - 1].content += ' ' + chunks[i].content;\n      chunks[i - 1].chunk_size = chunks[i - 1].content.length;\n      chunks.splice(i, 1);\n      // Current index now points to what was the next chunk\n    } else {\n      // Cannot merge without exceeding max, move on\n      i++;\n    }\n  } else {\n    i++;\n  }\n}\n\nconst returnData = chunks.map((chunk) => ({\n  json: chunk,\n}));\n\nreturn returnData;\n"
+          }
+        },
+        "inputs": {
+          "input": [
+            {
+              "type": "ai_languageModel",
+              "maxConnections": 1,
+              "required": true
+            },
+            {
+              "type": "main",
+              "required": true
+            }
+          ]
+        },
+        "outputs": {
+          "output": [
+            {
+              "type": "main"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.code",
+      "typeVersion": 1,
+      "position": [
+        1856,
+        1232
+      ],
+      "id": "523d151f-1aa8-41ae-a7e9-fde8ac5db8c1",
+      "name": "LangChain Code"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        1440
+      ],
+      "id": "88981942-a58b-4e00-876b-d29167441192",
+      "name": "Aggregate2"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "yGwZxRhrkehz7neC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/yGwZxRhrkehz7neC",
+          "cachedResultName": "Mistral OCR Document Extraction with Images"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        1440
+      ],
+      "name": "Call Mistral OCR for Documents",
+      "id": "60326cd0-31c2-4494-9e0b-d7325027be75"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": "documents_pg",
+        "options": {
+          "columnNames": {
+            "values": {
+              "contentColumnName": "content"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        2224,
+        1024
+      ],
+      "id": "7df1fa16-2214-4a5a-9d62-ce498af6b3f2",
+      "name": "Postgres PGVector Store",
+      "credentials": {
+        "postgres": {
+          "id": "safcm5oCM7iLGdq0",
+          "name": "Postgres Supabase selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents_pg",
+          "mode": "list",
+          "cachedResultName": "documents_pg"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        1872,
+        1552
+      ],
+      "id": "4d0897bf-427d-406d-ba0c-00c3e76fdf7a",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "QqlImjx7TFvnIgOD",
+          "name": "Supabase-API selfhosted"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1968,
+        1728
+      ],
+      "id": "87dde16f-ee53-4fc7-9a34-4bbe3116cb2b",
+      "name": "Default Data Loader1"
+    },
+    {
+      "parameters": {
+        "chunkSize": 800,
+        "chunkOverlap": 300,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1968,
+        1888
+      ],
+      "id": "756b7932-5e05-44fe-8633-45ea264c8c88",
+      "name": "Recursive Character Text Splitter1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a7b52737-85bf-41f0-8bb1-5316dca5b462",
+              "leftValue": "={{ $json.kosten_euro }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1632,
+        1472
+      ],
+      "id": "6bfbc88c-a0d9-4953-bc4f-4746afded2dc",
+      "name": "PriceCheck 5€"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2208,
+        1360
+      ],
+      "id": "66826953-837a-4b45-9ea1-9227824ca7fa",
+      "name": "Embeddings OpenAI2",
+      "credentials": {
+        "openAiApi": {
+          "id": "LjQ5aJMSkH6PVQhJ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1856,
+        1408
+      ],
+      "id": "152e290c-5127-468c-ad8e-36acfb505847",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "LjQ5aJMSkH6PVQhJ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# Weiterleitung an Mistral\nContent auslesen über Mistral-API und Speichern von Bildern im Supabase-Bucket",
+        "height": 448,
+        "width": 320,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        896,
+        1216
+      ],
+      "typeVersion": 1,
+      "id": "9d46e3e9-0e2c-4796-b77d-b2dea578ab14",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# Update Database\n- löschen alter Dokument-ID's\n- Anlegen der neuen Dokument-ID",
+        "height": 704,
+        "width": 544
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -128,
+        656
+      ],
+      "typeVersion": 1,
+      "id": "bc79b89c-2379-4c2b-b075-054dc4f7eefd",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Alle Items holen\nconst items = $input.all();\n\n// Gesamten Markdown-Text zusammenführen\nlet fullText = \"\";\n\nfor (const item of items) {\n  if (item.json.markdown) {\n    if (Array.isArray(item.json.markdown)) {\n      fullText += item.json.markdown.join(\" \") + \" \";\n    } else {\n      fullText += item.json.markdown + \" \";\n    }\n  }\n}\n\nfullText = fullText.trim();\n\n// Wörter zählen\nconst wordCount = fullText.split(/\\s+/).filter(Boolean).length;\n\n// Zeichen zählen\nconst charCount = fullText.length;\n\n// Token grob schätzen (1 Token ≈ 4 Zeichen)\nconst estimatedTokens = Math.ceil(charCount / 4);\n\n// Kosten berechnen (1 Mio Tokens = 0,40 €)\nconst pricePerMillion = 0.40;\nconst estimatedCost = (estimatedTokens / 1_000_000) * pricePerMillion;\n\n// Ergebnis zurückgeben\nreturn [{\n  json: {\n    wortanzahl: wordCount,\n    zeichenanzahl: charCount,\n    geschaetzte_tokens: estimatedTokens,\n    kosten_euro: Number(estimatedCost.toFixed(6)),\n    kosten_cent: +(estimatedCost * 100).toFixed(4)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        1440
+      ],
+      "id": "a9581b3a-70f2-46e7-af4a-554ddac457c5",
+      "name": "Prompt Cost Calculator"
+    }
+  ],
+  "pinData": {
+    "File Created": [
+      {
+        "json": {
+          "exportLinks": {
+            "application/x-vnd.oasis.opendocument.spreadsheet": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=ods",
+            "text/tab-separated-values": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=tsv",
+            "application/pdf": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=pdf",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=xlsx",
+            "text/csv": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=csv",
+            "application/zip": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=zip",
+            "application/vnd.oasis.opendocument.spreadsheet": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=ods"
+          },
+          "parents": [
+            "1HVq6bZM-hHXd1omnQDp3JXJnmB_YZL9h"
+          ],
+          "lastModifyingUser": {
+            "displayName": "Christian Langer",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "00035283827198885142",
+            "emailAddress": "cl.shorty01@googlemail.com",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKJVO8A2_GVW4wFamL59Hy4pu1v4AstAHfKZk79RofxOEqqp6YI=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Christian Langer",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "00035283827198885142",
+              "emailAddress": "cl.shorty01@googlemail.com",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKJVO8A2_GVW4wFamL59Hy4pu1v4AstAHfKZk79RofxOEqqp6YI=s64"
+            }
+          ],
+          "permissions": [
+            {
+              "kind": "drive#permission",
+              "id": "00035283827198885142",
+              "type": "user",
+              "emailAddress": "cl.shorty01@googlemail.com",
+              "role": "owner",
+              "displayName": "Christian Langer",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKJVO8A2_GVW4wFamL59Hy4pu1v4AstAHfKZk79RofxOEqqp6YI=s64",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "capabilities": {
+            "canAcceptOwnership": false,
+            "canAddChildren": false,
+            "canAddMyDriveParent": false,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canChangeItemDownloadRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canChangeViewersCanCopyContent": true,
+            "canComment": true,
+            "canCopy": true,
+            "canDelete": true,
+            "canDisableInheritedPermissions": false,
+            "canDownload": true,
+            "canEdit": true,
+            "canEnableInheritedPermissions": true,
+            "canListChildren": false,
+            "canModifyContent": true,
+            "canModifyContentRestriction": true,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canModifyLabels": false,
+            "canMoveChildrenWithinDrive": false,
+            "canMoveItemIntoTeamDrive": true,
+            "canMoveItemOutOfDrive": true,
+            "canMoveItemWithinDrive": true,
+            "canReadLabels": false,
+            "canReadRevisions": true,
+            "canRemoveChildren": false,
+            "canRemoveContentRestriction": false,
+            "canRemoveMyDriveParent": true,
+            "canRename": true,
+            "canShare": true,
+            "canTrash": true,
+            "canUntrash": true
+          },
+          "permissionIds": [
+            "00035283827198885142"
+          ],
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "kind": "drive#file",
+          "id": "1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s",
+          "name": "motorcycles_sample",
+          "mimeType": "application/vnd.google-apps.spreadsheet",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "version": "7",
+          "webViewLink": "https://docs.google.com/spreadsheets/d/1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s/edit?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.spreadsheet",
+          "hasThumbnail": true,
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBMpfM-hKhDT2yNUkEbr7sknh-q9r3Lgzp1sdyeUbwyhbMD3mMNYWCrfhg00G9MbQLS2syHDwvIKEdlZlC-yF2JS4M2BFKOmUQNO9AWwCSucOhU3Ixl20R3HPAy_=s220",
+          "thumbnailVersion": "1",
+          "viewedByMe": true,
+          "viewedByMeTime": "2025-11-27T22:33:51.639Z",
+          "createdTime": "2025-11-27T22:33:48.499Z",
+          "modifiedTime": "2025-11-27T22:33:50.605Z",
+          "modifiedByMeTime": "2025-11-27T22:33:50.605Z",
+          "modifiedByMe": true,
+          "shared": false,
+          "ownedByMe": true,
+          "viewersCanCopyContent": true,
+          "copyRequiresWriterPermission": false,
+          "writersCanShare": true,
+          "size": "48480",
+          "quotaBytesUsed": "48480",
+          "isAppAuthorized": false,
+          "inheritedPermissionsDisabled": false
+        }
+      }
+    ],
+    "Delete Old Data Rows": [
+      {
+        "json": {
+          "success": true
+        }
+      }
+    ],
+    "File Updated": [
+      {
+        "json": {
+          "exportLinks": {
+            "application/x-vnd.oasis.opendocument.spreadsheet": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=ods",
+            "text/tab-separated-values": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=tsv",
+            "application/pdf": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=pdf",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=xlsx",
+            "text/csv": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=csv",
+            "application/zip": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=zip",
+            "application/vnd.oasis.opendocument.spreadsheet": "https://docs.google.com/spreadsheets/export?id=1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s&exportFormat=ods"
+          },
+          "parents": [
+            "1HVq6bZM-hHXd1omnQDp3JXJnmB_YZL9h"
+          ],
+          "lastModifyingUser": {
+            "displayName": "Christian Langer",
+            "kind": "drive#user",
+            "me": true,
+            "permissionId": "00035283827198885142",
+            "emailAddress": "cl.shorty01@googlemail.com",
+            "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKJVO8A2_GVW4wFamL59Hy4pu1v4AstAHfKZk79RofxOEqqp6YI=s64"
+          },
+          "owners": [
+            {
+              "displayName": "Christian Langer",
+              "kind": "drive#user",
+              "me": true,
+              "permissionId": "00035283827198885142",
+              "emailAddress": "cl.shorty01@googlemail.com",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKJVO8A2_GVW4wFamL59Hy4pu1v4AstAHfKZk79RofxOEqqp6YI=s64"
+            }
+          ],
+          "permissions": [
+            {
+              "kind": "drive#permission",
+              "id": "00035283827198885142",
+              "type": "user",
+              "emailAddress": "cl.shorty01@googlemail.com",
+              "role": "owner",
+              "displayName": "Christian Langer",
+              "photoLink": "https://lh3.googleusercontent.com/a/ACg8ocKJVO8A2_GVW4wFamL59Hy4pu1v4AstAHfKZk79RofxOEqqp6YI=s64",
+              "deleted": false,
+              "pendingOwner": false
+            }
+          ],
+          "spaces": [
+            "drive"
+          ],
+          "capabilities": {
+            "canAcceptOwnership": false,
+            "canAddChildren": false,
+            "canAddMyDriveParent": false,
+            "canChangeCopyRequiresWriterPermission": true,
+            "canChangeItemDownloadRestriction": true,
+            "canChangeSecurityUpdateEnabled": false,
+            "canChangeViewersCanCopyContent": true,
+            "canComment": true,
+            "canCopy": true,
+            "canDelete": true,
+            "canDisableInheritedPermissions": false,
+            "canDownload": true,
+            "canEdit": true,
+            "canEnableInheritedPermissions": true,
+            "canListChildren": false,
+            "canModifyContent": true,
+            "canModifyContentRestriction": true,
+            "canModifyEditorContentRestriction": true,
+            "canModifyOwnerContentRestriction": true,
+            "canModifyLabels": false,
+            "canMoveChildrenWithinDrive": false,
+            "canMoveItemIntoTeamDrive": true,
+            "canMoveItemOutOfDrive": true,
+            "canMoveItemWithinDrive": true,
+            "canReadLabels": false,
+            "canReadRevisions": true,
+            "canRemoveChildren": false,
+            "canRemoveContentRestriction": false,
+            "canRemoveMyDriveParent": true,
+            "canRename": true,
+            "canShare": true,
+            "canTrash": true,
+            "canUntrash": true
+          },
+          "permissionIds": [
+            "00035283827198885142"
+          ],
+          "linkShareMetadata": {
+            "securityUpdateEligible": false,
+            "securityUpdateEnabled": true
+          },
+          "downloadRestrictions": {
+            "itemDownloadRestriction": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            },
+            "effectiveDownloadRestrictionWithContext": {
+              "restrictedForReaders": false,
+              "restrictedForWriters": false
+            }
+          },
+          "kind": "drive#file",
+          "id": "1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s",
+          "name": "motorcycles_sample",
+          "mimeType": "application/vnd.google-apps.spreadsheet",
+          "starred": false,
+          "trashed": false,
+          "explicitlyTrashed": false,
+          "version": "13",
+          "webViewLink": "https://docs.google.com/spreadsheets/d/1HcgTgmACONNymsY-OC7o56oe8MGlync1DNL5PdG5v8s/edit?usp=drivesdk",
+          "iconLink": "https://drive-thirdparty.googleusercontent.com/16/type/application/vnd.google-apps.spreadsheet",
+          "hasThumbnail": true,
+          "thumbnailLink": "https://lh3.googleusercontent.com/drive-storage/AJQWtBMyPCgDx7Orlwv74jd7lr02AmFdRpMBsTNSbayVKQkIS9efiqdxM0hKkEeuRIiHz6BvcT_ZRF2l4T17V8XMkbuy76sMkd2-n4Vt28SwvzHnfNeIY0VmjxHPahl2VA=s220",
+          "thumbnailVersion": "2",
+          "viewedByMe": true,
+          "viewedByMeTime": "2025-11-27T22:44:11.650Z",
+          "createdTime": "2025-11-27T22:33:48.499Z",
+          "modifiedTime": "2025-11-27T22:44:11.650Z",
+          "modifiedByMeTime": "2025-11-27T22:44:11.650Z",
+          "modifiedByMe": true,
+          "shared": false,
+          "ownedByMe": true,
+          "viewersCanCopyContent": true,
+          "copyRequiresWriterPermission": false,
+          "writersCanShare": true,
+          "size": "48480",
+          "quotaBytesUsed": "48480",
+          "isAppAuthorized": false,
+          "inheritedPermissionsDisabled": false
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Created": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "File Updated": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set File ID": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Data Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize": {
+      "main": [
+        [
+          {
+            "node": "Set Schema",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Postgres PGVector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from Excel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from Excel",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract from CSV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call Mistral OCR for Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Excel": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Table Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Schema": {
+      "main": [
+        [
+          {
+            "node": "Update Schema for Document Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from CSV": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insert Table Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Set File ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Document Metadata": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Data Rows": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Doc Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Doc Rows": {
+      "main": [
+        [
+          {
+            "node": "Insert Document Metadata",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LangChain Code": {
+      "main": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate2": {
+      "main": [
+        [
+          {
+            "node": "Prompt Cost Calculator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Mistral OCR for Documents": {
+      "main": [
+        [
+          {
+            "node": "Aggregate2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres PGVector Store": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader1": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter1": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader1",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PriceCheck 5€": {
+      "main": [
+        [
+          {
+            "node": "LangChain Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI2": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Postgres PGVector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "LangChain Code",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prompt Cost Calculator": {
+      "main": [
+        [
+          {
+            "node": "PriceCheck 5€",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e7232b35-e646-425c-b36b-82d1ed03ab46",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "85f46842b7362d4d50da2a9e53a370bd3970fc12f5adeb44087284c40ee454be"
+  },
+  "id": "H5XP9BZn4fhhCEd7",
+  "tags": []
+}

@@ -36,6 +36,7 @@ yarn-error.log*
 .env.prod
 .env.dev
 !**/.env.example
+docker/livekit/livekit.yaml
 
 # vercel
 .vercel

@@ -73,6 +73,50 @@ function parseTemplate(content) {
   return entries;
 }
 
+function parseEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return {};
+  }
+  const content = fs.readFileSync(filePath, "utf8");
+  return content.split(/\r?\n/).reduce((acc, line) => {
+    if (!line || line.trim().startsWith("#")) {
+      return acc;
+    }
+    const match = line.match(/^\s*([A-Z0-9_]+)\s*=(.*)$/);
+    if (match) {
+      acc[match[1]] = match[2];
+    }
+    return acc;
+  }, {});
+}
+
+function updateEnvFile(filePath, updates) {
+  const content = fs.readFileSync(filePath, "utf8");
+  const lines = content.split(/\r?\n/);
+  const applied = new Set();
+
+  const nextLines = lines.map((line) => {
+    const match = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (!match) {
+      return line;
+    }
+    const key = match[1];
+    if (!(key in updates) || updates[key] === undefined) {
+      return line;
+    }
+    applied.add(key);
+    return `${key}=${updates[key]}`;
+  });
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (!applied.has(key) && value !== undefined) {
+      nextLines.push(`${key}=${value}`);
+    }
+  }
+
+  fs.writeFileSync(filePath, nextLines.join("\n"), "utf8");
+}
+
 function defaultForScope(entry, scope) {
   if (entry.meta?.defaults && entry.meta.defaults[scope] !== undefined) {
     return String(entry.meta.defaults[scope]);
@@ -87,8 +131,9 @@ function scopeMatches(entry, scope) {
   return entry.meta.scopes.includes(scope);
 }
 
-async function promptValue(entry, scope, rl) {
-  const defaultValue = defaultForScope(entry, scope);
+async function promptValue(entry, scope, rl, currentValue) {
+  const defaultValue =
+    currentValue !== undefined ? currentValue : defaultForScope(entry, scope);
   const description = entry.meta?.description || entry.key;
   const hint =
     defaultValue !== undefined && defaultValue !== ""
@@ -122,6 +167,39 @@ function promptYesNo(rl, question, defaultAnswer = false) {
   });
 }
 
+function findMissingEntries(entries, scope, envValues) {
+  return entries.filter(
+    (entry) =>
+      entry.type === "var" &&
+      scopeMatches(entry, scope) &&
+      (envValues[entry.key] === undefined || envValues[entry.key] === "")
+  );
+}
+
+async function promptMissingEntries(entries, scope, envValues, rl) {
+  if (!entries.length) {
+    console.log("✅ Alle benötigten Variablen in .env sind bereits gesetzt.");
+    return;
+  }
+
+  console.log(
+    `⚠️  ${entries.length} neue Variablen fehlen in .env und werden jetzt abgefragt.`
+  );
+
+  const updates = {};
+  for (const entry of entries) {
+    updates[entry.key] = await promptValue(
+      entry,
+      scope,
+      rl,
+      envValues[entry.key]
+    );
+  }
+
+  updateEnvFile(OUTPUT_PATH, updates);
+  console.log("✅ Fehlende Variablen ergänzt.");
+}
+
 async function main() {
   if (!fs.existsSync(TEMPLATE_PATH)) {
     console.error(`env.template nicht gefunden (${TEMPLATE_PATH})`);
@@ -135,19 +213,21 @@ async function main() {
   });
 
   try {
+    const template = fs.readFileSync(TEMPLATE_PATH, "utf8");
+    const entries = parseTemplate(template);
+
     if (fs.existsSync(OUTPUT_PATH)) {
+      const existingEnv = parseEnvFile(OUTPUT_PATH);
       const keepExisting = await promptYesNo(
         rl,
         ".env existiert bereits. Möchtest du die vorhandenen Werte übernehmen?"
       );
       if (keepExisting) {
-        console.log(".env bleibt unverändert – vorhandene Werte werden genutzt.");
+        const missingEntries = findMissingEntries(entries, scope, existingEnv);
+        await promptMissingEntries(missingEntries, scope, existingEnv, rl);
         return;
       }
     }
-
-    const template = fs.readFileSync(TEMPLATE_PATH, "utf8");
-    const entries = parseTemplate(template);
 
     const outputLines = [
       `# Erstellt von scripts/setup-env.cjs (Scope: ${scope})`,

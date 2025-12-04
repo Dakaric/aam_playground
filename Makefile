@@ -1,4 +1,9 @@
-.PHONY: help pull dev dev-n8n dev-down dev-restart dev-logs env-dev rebuild-dev prod prod-n8n prod-down prod-restart prod-logs env-prod rebuild-prod n8n-logs update-n8n lint type format studio migrate setup setup-dev setup-prod setup-env post-setup switch-remote bootstrap-remote reset-dev-db-volume clean-prod supabase-up supabase-down supabase-restart supabase-logs supabase-reset clean-docker
+.PHONY: help pull dev dev-n8n dev-down dev-restart dev-logs env-dev rebuild-dev prod prod-n8n prod-down prod-restart prod-logs env-prod rebuild-prod n8n-logs update-n8n lint type format studio migrate setup setup-dev setup-prod setup-env post-setup switch-remote bootstrap-remote reset-dev-db-volume clean-prod supabase-up supabase-down supabase-restart supabase-logs supabase-reset clean-docker livekit-pull prod-stack-up
+
+ifneq (,$(wildcard .env))
+include .env
+export $(shell sed -n 's/^\([A-Za-z0-9_]\+\)=.*/\1/p' .env)
+endif
 
 COMPOSE ?= docker compose
 SUPABASE_COMPOSE ?= docker compose -f docker/supabase/docker-compose.yml
@@ -6,6 +11,8 @@ SUPABASE_ENV_FILE ?= docker/supabase/.env
 DEV_PROFILES := --profile dev
 PROD_PROFILES := --profile prod
 N8N_PROFILE := --profile n8n
+LIVEKIT_PROFILE := --profile livekit
+LIVEKIT_PROFILES := $(if $(filter true,$(strip $(LIVEKIT_ENABLED))),$(LIVEKIT_PROFILE),)
 COMPOSE_PROJECT_NAME ?= $(notdir $(CURDIR))
 DB_VOLUME := $(COMPOSE_PROJECT_NAME)_db-data
 WEB_IMAGE := $(COMPOSE_PROJECT_NAME)-web
@@ -60,6 +67,7 @@ setup: setup-dev
 setup-dev:
 	@SETUP_ENV_SCOPE=dev $(SETUP_SCRIPT)
 	@SETUP_ENV_SCOPE=dev node scripts/setup-supabase-env.cjs
+	@node scripts/setup-livekit-config.cjs
 	@if [ "$(RESET_DB_VOLUME_ON_SETUP)" = "true" ]; then \
 		$(MAKE) --no-print-directory reset-dev-db-volume; \
 	else \
@@ -71,19 +79,32 @@ setup-prod:
 	@$(SERVER_CHECK_SCRIPT)
 	@SETUP_ENV_SCOPE=prod $(SETUP_SCRIPT)
 	@SETUP_ENV_SCOPE=prod node scripts/setup-supabase-env.cjs
+	@node scripts/setup-livekit-config.cjs
 	@$(MAKE) --no-print-directory post-setup
 	@$(MAKE) --no-print-directory clean-prod
 	@echo "⬇️  Ziehe Basis-Images für prod + n8n …"
 	@$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) pull n8n caddy
-	@echo "🚀 Starte prod + n8n Stack frisch (inkl. Web-Rebuild) …"
-	@$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) up -d --build --pull always
+	@$(MAKE) --no-print-directory livekit-pull
+	@$(MAKE) --no-print-directory prod-stack-up
 	@echo "🚀 Starte Supabase-Stack inkl. Migrationen …"
 	@$(MAKE) --no-print-directory supabase-up
 
+livekit-pull:
+	@if [ "$(strip $(LIVEKIT_ENABLED))" = "true" ]; then \
+		echo "⬇️  Ziehe LiveKit-Images …"; \
+		$(COMPOSE) $(LIVEKIT_PROFILE) pull livekit livekit-redis; \
+	else \
+		true; \
+	fi
+
+prod-stack-up:
+	@echo "🚀 Starte prod + n8n Stack frisch (inkl. Web-Rebuild) …"
+	@$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d --build --pull always
+
 clean-prod:
 	@echo "🧹 Stoppe laufende prod/n8n-Container (n8n-Daten bleiben erhalten)."
-	@$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) down --remove-orphans || true
-	@for volume in $(COMPOSE_PROJECT_NAME)_db-data $(COMPOSE_PROJECT_NAME)_caddy-data $(COMPOSE_PROJECT_NAME)_caddy-config; do \
+	@$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) down --remove-orphans || true
+	@for volume in $(COMPOSE_PROJECT_NAME)_db-data $(COMPOSE_PROJECT_NAME)_caddy-data $(COMPOSE_PROJECT_NAME)_caddy-config $(COMPOSE_PROJECT_NAME)_livekit-redis-data; do \
 		if docker volume inspect $$volume >/dev/null 2>&1; then \
 			echo "   -> Entferne $$volume"; \
 			docker volume rm $$volume >/dev/null; \
@@ -99,6 +120,7 @@ clean-prod:
 setup-env:
 	@node scripts/setup-env.cjs
 	@node scripts/setup-supabase-env.cjs
+	@node scripts/setup-livekit-config.cjs
 	@$(MAKE) --no-print-directory post-setup
 
 post-setup:
@@ -116,53 +138,53 @@ post-setup:
 	fi
 
 dev:
-	$(COMPOSE) $(DEV_PROFILES) up -d
+	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) up -d
 
 dev-n8n:
-	$(COMPOSE) $(DEV_PROFILES) $(N8N_PROFILE) up -d
+	$(COMPOSE) $(DEV_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d
 
 dev-down:
-	$(COMPOSE) $(DEV_PROFILES) down
+	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) down
 
 dev-restart:
-	$(COMPOSE) $(DEV_PROFILES) restart
+	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) restart
 
 dev-logs:
 	$(COMPOSE) logs -f web-dev
 
 env-dev:
-	$(COMPOSE) $(DEV_PROFILES) up -d --force-recreate web-dev
+	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) up -d --force-recreate web-dev
 
 rebuild-dev:
 	$(COMPOSE) $(DEV_PROFILES) build --no-cache web-dev
-	$(COMPOSE) $(DEV_PROFILES) up -d
+	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) up -d
 
 prod:
-	$(COMPOSE) $(PROD_PROFILES) up -d --build
+	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) up -d --build
 
 prod-n8n:
-	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) up -d --build
+	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d --build
 
 prod-all:
 	@$(MAKE) --no-print-directory supabase-up
-	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) up -d --build
+	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d --build
 
 prod-down:
-	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) down
+	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) down
 	@$(MAKE) --no-print-directory supabase-down
 
 prod-restart:
-	$(COMPOSE) $(PROD_PROFILES) restart
+	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) restart
 
 prod-logs:
 	$(COMPOSE) logs -f web
 
 env-prod:
-	$(COMPOSE) $(PROD_PROFILES) up -d --force-recreate web
+	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) up -d --force-recreate web
 
 rebuild-prod:
 	$(COMPOSE) $(PROD_PROFILES) build --no-cache web
-	$(COMPOSE) $(PROD_PROFILES) up -d
+	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) up -d
 
 n8n-logs:
 	$(COMPOSE) logs -f n8n
@@ -212,6 +234,7 @@ clean-docker:
 	- $(COMPOSE) --profile dev down --remove-orphans >/dev/null 2>&1 || true
 	- $(COMPOSE) --profile prod down --remove-orphans >/dev/null 2>&1 || true
 	- $(COMPOSE) --profile n8n down --remove-orphans >/dev/null 2>&1 || true
+	- $(COMPOSE) $(LIVEKIT_PROFILE) down --remove-orphans >/dev/null 2>&1 || true
 	@echo "🛑 Stoppe Supabase-Stack und entferne seine internen Volumes …"
 	@if [ -f $(SUPABASE_ENV_FILE) ]; then \
 		$(SUPABASE_COMPOSE) --env-file $(SUPABASE_ENV_FILE) down -v --remove-orphans || true; \
@@ -219,7 +242,7 @@ clean-docker:
 		echo "ℹ️  $(SUPABASE_ENV_FILE) nicht gefunden – überspringe Supabase Cleanup."; \
 	fi
 	@echo "🧹 Entferne lokale Docker-Volumes (n8n-data bleibt erhalten) …"
-	@for volume in $(COMPOSE_PROJECT_NAME)_db-data $(COMPOSE_PROJECT_NAME)_web-dev-node-modules $(COMPOSE_PROJECT_NAME)_caddy-data $(COMPOSE_PROJECT_NAME)_caddy-config; do \
+	@for volume in $(COMPOSE_PROJECT_NAME)_db-data $(COMPOSE_PROJECT_NAME)_web-dev-node-modules $(COMPOSE_PROJECT_NAME)_caddy-data $(COMPOSE_PROJECT_NAME)_caddy-config $(COMPOSE_PROJECT_NAME)_livekit-redis-data; do \
 		if docker volume inspect $$volume >/dev/null 2>&1; then \
 			echo "   -> Entferne $$volume"; \
 			docker volume rm $$volume >/dev/null; \

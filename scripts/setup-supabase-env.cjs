@@ -405,9 +405,16 @@ async function main() {
   const scope = resolveScope();
   const interactive =
     scope === "prod" || process.env.SETUP_SUPABASE_INTERACTIVE === "1";
-  const rl = interactive
-    ? readline.createInterface({ input: process.stdin, output: process.stdout })
-    : null;
+  let rl = null;
+  const ensureRl = () => {
+    if (!rl) {
+      rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+      });
+    }
+    return rl;
+  };
 
   try {
     const rootEnv = parseEnv(ROOT_ENV_PATH);
@@ -417,11 +424,40 @@ async function main() {
     if (interactive) {
       await promptSupabaseSecrets({
         scope,
-        rl,
+        rl: ensureRl(),
         supabaseEnv,
         supabaseFileJustCreated: created,
       });
       supabaseEnv = parseEnv(SUPABASE_ENV_PATH);
+    }
+
+    const templateContent = fs.readFileSync(SUPABASE_ENV_EXAMPLE_PATH, "utf8");
+    const supabaseEntries = parseTemplate(templateContent);
+    const missingEntries = supabaseEntries.filter(
+      (entry) =>
+        entry.type === "var" &&
+        scopeMatches(entry, scope) &&
+        (supabaseEnv[entry.key] === undefined || supabaseEnv[entry.key] === "")
+    );
+
+    if (missingEntries.length > 0) {
+      console.log(
+        `⚠️  ${missingEntries.length} Supabase-Variablen fehlen in docker/supabase/.env und werden abgefragt.`
+      );
+      const updates = {};
+      const rlInstance = ensureRl();
+      for (const entry of missingEntries) {
+        updates[entry.key] = await promptValue(
+          entry,
+          scope,
+          rlInstance,
+          supabaseEnv[entry.key]
+        );
+      }
+      updateEnvFile(SUPABASE_ENV_PATH, updates);
+      supabaseEnv = parseEnv(SUPABASE_ENV_PATH);
+    } else {
+      console.log("✅ Supabase .env enthält alle Variablen aus .env.example.");
     }
 
     const syncUpdates = {

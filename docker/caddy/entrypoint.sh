@@ -4,6 +4,9 @@ set -eu
 SITE_DOMAIN=${SITE_DOMAIN:-}
 ACME_EMAIL=${ACME_EMAIL:-}
 N8N_DOMAIN=${N8N_DOMAIN:-}
+LIVEKIT_DOMAIN=${LIVEKIT_DOMAIN:-}
+LIVEKIT_ENABLED=${LIVEKIT_ENABLED:-false}
+LIVEKIT_PORT=${LIVEKIT_PORT:-7880}
 SUPABASE_DOMAIN=${SUPABASE_DOMAIN:-}
 SUPABASE_KONG_HOST=${SUPABASE_KONG_HOST:-}
 SUPABASE_KONG_PORT=${SUPABASE_KONG_PORT:-8000}
@@ -49,6 +52,20 @@ cat <<EOF >>/etc/caddy/Caddyfile
 https://${SUPABASE_DOMAIN} {
     encode gzip
     reverse_proxy ${SUPABASE_KONG_HOST}:${SUPABASE_KONG_PORT}
+}
+EOF
+fi
+
+if [ "$LIVEKIT_ENABLED" = "true" ]; then
+  if [ -z "$LIVEKIT_DOMAIN" ]; then
+    echo "LIVEKIT_ENABLED=true, aber LIVEKIT_DOMAIN ist nicht gesetzt." >&2
+    exit 1
+  fi
+cat <<EOF >>/etc/caddy/Caddyfile
+
+https://${LIVEKIT_DOMAIN} {
+    encode gzip
+    reverse_proxy livekit:${LIVEKIT_PORT}
 }
 EOF
 fi

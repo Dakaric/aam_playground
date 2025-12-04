@@ -95,10 +95,13 @@ services:
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
       N8N_DOMAIN: ${N8N_DOMAIN}
+      LIVEKIT_DOMAIN: ${LIVEKIT_DOMAIN}
       ACME_EMAIL: ${ACME_EMAIL}
       SUPABASE_DOMAIN: ${SUPABASE_DOMAIN}
       SUPABASE_KONG_HOST: ${SUPABASE_KONG_HOST}
       SUPABASE_KONG_PORT: ${SUPABASE_KONG_PORT}
+      LIVEKIT_ENABLED: ${LIVEKIT_ENABLED}
+      LIVEKIT_PORT: ${LIVEKIT_PORT}
     ports:
       - "80:80"
       - "443:443"
@@ -124,6 +127,37 @@ services:
       - internal
     restart: unless-stopped
 
+  livekit-redis:
+    image: redis:7-alpine
+    profiles:
+      - livekit
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - livekit-redis-data:/data
+    networks:
+      - internal
+    restart: unless-stopped
+
+  livekit:
+    image: livekit/livekit-server:latest
+    profiles:
+      - livekit
+    depends_on:
+      livekit-redis:
+        condition: service_started
+    volumes:
+      - ./docker/livekit:/etc/livekit:ro
+    command: ["--config", "/etc/livekit/livekit.yaml"]
+    ports:
+      - "${LIVEKIT_PORT:-7880}:${LIVEKIT_PORT:-7880}"
+      - "${LIVEKIT_RTC_TCP_PORT:-7881}:${LIVEKIT_RTC_TCP_PORT:-7881}"
+      - "${LIVEKIT_RTC_UDP_PORT:-7882}:${LIVEKIT_RTC_UDP_PORT:-7882}/udp"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - internal
+    restart: unless-stopped
+
 networks:
   internal:
 
@@ -132,5 +166,6 @@ volumes:
   web-dev-node-modules:
   caddy-data:
   caddy-config:
+  livekit-redis-data:
 
 

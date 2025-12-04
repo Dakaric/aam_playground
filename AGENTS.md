@@ -105,6 +105,13 @@ Empfehlung für später:
 - `/api/voice` als Upgrade‑Pfad anlegen
 - Evaluieren: WebRTC SFU/MCU vs. Anbieter (Twilio, LiveKit)
 
+### LiveKit Stack (Docker)
+- `LIVEKIT_ENABLED=true` in `.env` sorgt dafür, dass `make setup` den LiveKit‑Stack mitinstalliert.
+- Beim Setup wird `docker/livekit/livekit.yaml` aus den neuen LiveKit‑Variablen in der `.env` generiert. Die Datei bleibt lokal (Secrets!).
+- `docker-compose.yml` enthält dafür zwei neue Services (`livekit`, `livekit-redis`) im Profil `livekit`. Die Make Targets hängen das Profil automatisch an `dev`/`prod`, sobald LiveKit aktiviert ist.
+- Standard-Ports: `7880` (HTTP/WS), `7881` (TCP ICE), `7882` (UDP ICE). Passe die Werte über `LIVEKIT_*` Variablen an, falls du andere Firewalls offen hast.
+- TURN/Webhooks/Prometheus lassen sich optional über die zusätzlichen Variablen konfigurieren; fehlende Werte werden beim Setup nachgefragt.
+
 ---
 
 ## 3) Blog‑Automation

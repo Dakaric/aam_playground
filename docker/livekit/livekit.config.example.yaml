@@ -1,0 +1,31 @@
+# Beispielkonfiguration für LiveKit (wird automatisch befüllt)
+port: 7880
+log_level: info
+bind_addresses:
+  - 0.0.0.0
+
+rtc:
+  use_external_ip: true
+  tcp_port: 7881
+  udp_port: 7882
+  node_ip: ""
+
+redis:
+  address: livekit-redis:6379
+
+keys:
+  example-key: example-secret
+
+webhook:
+  api_key: example-key
+  urls: []
+
+turn:
+  enabled: false
+  domain: ""
+  tls_port: 5349
+  udp_port: 3478
+  username: ""
+  password: ""
+
+

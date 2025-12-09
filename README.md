@@ -25,8 +25,9 @@ Alle Bausteine werden über Makefile-Targets gestartet. Diese Anleitung führt d
   - [5.4 Vector Store & RAG-Setup](#54-vector-store--rag-setup)
 - [6. n8n ↔ Supabase (Credentials)](#6-n8n--supabase-credentials)
 - [7. Häufige Workflows](#7-häufige-workflows)
-- [8. Sicherheit & Best Practices](#8-sicherheit--best-practices)
-- [9. Fresh-Install & Smoke-Test Checkliste](#9-fresh-install--smoke-test-checkliste)
+- [8. Voice-Agent (LiveKit)](#8-voice-agent-livekit)
+- [9. Sicherheit & Best Practices](#9-sicherheit--best-practices)
+- [10. Fresh-Install & Smoke-Test Checkliste](#10-fresh-install--smoke-test-checkliste)
 
 ---
 
@@ -254,7 +255,55 @@ postgresql://APP_DB_USER:APP_DB_PASSWORD@sb-ai-test.dakatos.online:54324/APP_DB_
 
 ---
 
-## 8. Sicherheit & Best Practices
+## 8. Voice-Agent (LiveKit)
+
+Mit `npm install` wurden Client- und Server-SDKs von LiveKit eingebunden. Folgende Bestandteile sind neu:
+
+- `/app/voice/page.tsx` + `VoiceClient`: eine kleine UI, die einen Token abruft, dein Mikrofon freigibt und sich mit dem definierten Raum verbindet.
+- `/api/voice/token`: stellt Kurzzeit-Tokens via `livekit-server-sdk` aus.
+- `scripts/ensure-livekit-assets.cjs`: erzeugt Redis-Passwort, TURN-Zertifikate und sorgt dafür, dass `livekit.yaml` immer aktuell ist (wird automatisch von `make dev*`, `make prod*`, `make env-prod` etc. aufgerufen).
+
+### So nutzt du die Voice-UI
+
+1. **Konfiguration setzen**
+   - `LIVEKIT_ENABLED=true`
+   - `NEXT_PUBLIC_LIVEKIT_WS_URL` (öffentlich erreichbarer WSS-Endpunkt, z. B. `wss://voice-ai-test.dakatos.online`)
+   - `LIVEKIT_DOMAIN`, `LIVEKIT_TURN_DOMAIN`, `LIVEKIT_VOICE_ROOM`
+   - Optional: echte TLS-Zertifikate unter `docker/livekit/certs` ablegen und Pfade per `LIVEKIT_TURN_CERT_FILE` / `LIVEKIT_TURN_KEY_FILE` anpassen.
+2. **Stack neu starten**
+   - Nach jeder `.env`-Änderung `make env-prod` (oder `make dev-n8n`) ausführen. Dabei laufen `ensure-livekit-assets` und `setup-livekit-config` automatisch → Redis-Auth, TURN-Zertifikate und `livekit.yaml` werden aktualisiert.
+3. **n8n / Agent anbinden**
+   - Im gleichen Raum (`LIVEKIT_VOICE_ROOM`, Standard `voice-agent`) einen Flow starten, der den Voice-Agent bedient.
+4. **Browser testen**
+   - `https://<SITE_DOMAIN>/voice` öffnen, Anzeigenamen auswählen, auf „Verbinden“ klicken.
+   - Der Client erzeugt via `/api/voice/token` einen JWT, verbindet sich mit dem LiveKit-Server und bietet eine Control-Bar zum Aktivieren/Deaktivieren des Mikrofons.
+
+### 8.2 Voice-Worker (OpenAI Whisper/TTS + n8n)
+
+Mit `voice-worker/` betreibst du einen Bot direkt auf dem Server:
+
+1. `.env` ergänzen
+   - `OPENAI_API_KEY=<dein Key>`
+   - `VOICE_WORKER_N8N_WEBHOOK_URL=https://n8n.../webhook/voice-agent`
+   - optional: `VOICE_WORKER_N8N_TOKEN`, `VOICE_WORKER_STT_MODEL`, `VOICE_WORKER_TTS_MODEL`, `VOICE_WORKER_TTS_VOICE`, `VOICE_WORKER_CHUNK_SECONDS`, `VOICE_WORKER_TTS_SAMPLE_RATE`.
+2. n8n-Webhook
+   - Erwartet `POST { participant, room, message }`.
+   - Workflow liefert `{ "reply": "Antworttext" }` zurück (z. B. GPT-4 + Tools).
+3. Worker läuft im Docker-Stack
+   - Compose-Service `voice-worker` (Profil `livekit`) nutzt `voice-worker/Dockerfile` und startet automatisch mit `make dev-n8n`, `make prod-all`, etc.
+   - Voraussetzung: `LIVEKIT_ENABLED=true`, damit das `livekit`-Profil (inkl. Bot) aktiv ist.
+   - Optional kannst du lokal mit `npm run voice-worker:start` testen; für den Server reicht der Container.
+4. Ablauf
+   - Worker joint den Raum als `VOICE_WORKER_IDENTITY`.
+   - Sammelt ca. 3 s Audio → OpenAI Whisper (`VOICE_WORKER_STT_MODEL`) → Text.
+   - Sendet Text an deinen n8n-Webhook (LLM/Automationen).
+   - Erzeugt Antwort-Audio via OpenAI TTS (`VOICE_WORKER_TTS_MODEL`/`VOICE_WORKER_TTS_VOICE`) und spielt es über LiveKit ab.
+
+⚠️ Hinweis: Der Token-Endpunkt ist bewusst offen (keine Admin-Authentifizierung), damit anonyme Webseiten-Besucher teilnehmen können. Falls du das härten möchtest, baue davor z. B. eine Session-/Rate-Limit-Logik ein.
+
+---
+
+## 9. Sicherheit & Best Practices
 
 - `.env` und `docker/supabase/.env` niemals committen.
 - Alle Default-Keys (Supabase, n8n, Admin Tokens) zeitnah austauschen.
@@ -264,7 +313,7 @@ postgresql://APP_DB_USER:APP_DB_PASSWORD@sb-ai-test.dakatos.online:54324/APP_DB_
 
 ---
 
-## 9. Fresh-Install & Smoke-Test Checkliste
+## 10. Fresh-Install & Smoke-Test Checkliste
 
 Diese Kurzliste stellt sicher, dass auch unerfahrene User das Template fehlerfrei starten können:
 

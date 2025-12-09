@@ -6,11 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "voice-worker:dev": "cd voice-worker && npm run dev",
+    "voice-worker:build": "cd voice-worker && npm run build",
+    "voice-worker:start": "cd voice-worker && npm run start"
   },
   "dependencies": {
+    "@livekit/components-react": "^2.9.17",
+    "@livekit/components-styles": "^1.2.0",
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "livekit-client": "^2.16.0",
+    "livekit-server-sdk": "^2.14.2",
     "next": "16.0.0",
     "pg": "^8.12.0",
     "prisma": "^7.0.0",

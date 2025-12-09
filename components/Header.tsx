@@ -14,6 +14,9 @@ export default function Header() {
           <Link href="/blog" className="hover:underline">
             Blog
           </Link>
+          <Link href="/voice" className="hover:underline">
+            Voice-Agent
+          </Link>
         </nav>
       </div>
     </header>

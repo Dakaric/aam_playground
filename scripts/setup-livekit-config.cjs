@@ -48,6 +48,15 @@ function ensureValue(env, key, fallback) {
   return value;
 }
 
+function resolveContainerPath(value) {
+  if (!value) {
+    return value;
+  }
+  return value.startsWith("/")
+    ? value
+    : `/etc/livekit/${value.replace(/^\.?\//, "")}`;
+}
+
 function buildConfig(env) {
   const lines = [];
   const logLevel = ensureValue(env, "LIVEKIT_LOG_LEVEL", "info");
@@ -58,6 +67,10 @@ function buildConfig(env) {
   const redisPort = ensureValue(env, "LIVEKIT_REDIS_PORT", "6379");
   const redisUser = env.LIVEKIT_REDIS_USERNAME;
   const redisPass = env.LIVEKIT_REDIS_PASSWORD;
+  const redisAuthEnabled = normalizeBoolean(
+    env.LIVEKIT_REDIS_AUTH_ENABLED,
+    false
+  );
   const nodeIp = env.LIVEKIT_NODE_IP || "";
   const useExternalIp = normalizeBoolean(env.LIVEKIT_USE_EXTERNAL_IP, true);
   const prometheusPort = env.LIVEKIT_PROMETHEUS_PORT;
@@ -85,23 +98,49 @@ function buildConfig(env) {
 
   lines.push("redis:");
   lines.push(`  address: ${redisHost}:${redisPort}`);
-  if (redisUser) {
-    lines.push(`  username: ${redisUser}`);
-  }
-  if (redisPass) {
-    lines.push(`  password: ${redisPass}`);
+  if (redisAuthEnabled) {
+    if (redisUser) {
+      lines.push(`  username: ${redisUser}`);
+    }
+    if (redisPass) {
+      lines.push(`  password: ${redisPass}`);
+    }
+  } else if (redisUser || redisPass) {
+    console.warn(
+      "[setup-livekit-config] LIVEKIT_REDIS_USERNAME/-PASSWORD sind gesetzt, aber LIVEKIT_REDIS_AUTH_ENABLED!=true – Werte werden ignoriert."
+    );
   }
 
   const apiKey = ensureValue(env, "LIVEKIT_API_KEY");
   const apiSecret = ensureValue(env, "LIVEKIT_API_SECRET");
+  const keyPairs = new Map([[apiKey, apiSecret]]);
+
+  const extraWebhookKey = env.LIVEKIT_WEBHOOK_API_KEY;
+  const extraWebhookSecret = env.LIVEKIT_WEBHOOK_API_SECRET;
+  if (extraWebhookKey && extraWebhookSecret) {
+    keyPairs.set(extraWebhookKey, extraWebhookSecret);
+  } else if (extraWebhookKey && extraWebhookKey !== apiKey) {
+    console.warn(
+      "[setup-livekit-config] LIVEKIT_WEBHOOK_API_KEY ist gesetzt, aber LIVEKIT_WEBHOOK_API_SECRET fehlt – verwende Haupt-API-Key."
+    );
+  }
+
   lines.push("keys:");
-  lines.push(`  ${apiKey}: ${apiSecret}`);
+  for (const [key, secret] of keyPairs.entries()) {
+    lines.push(`  ${key}: ${secret}`);
+  }
 
   if (normalizeBoolean(env.LIVEKIT_WEBHOOK_ENABLED, false) && webhookUrls.length) {
-    const webhookKey =
+    let webhookKey =
       env.LIVEKIT_WEBHOOK_API_KEY && env.LIVEKIT_WEBHOOK_API_KEY !== ""
         ? env.LIVEKIT_WEBHOOK_API_KEY
         : apiKey;
+    if (!keyPairs.has(webhookKey)) {
+      console.warn(
+        "[setup-livekit-config] Webhook-Key nicht in keys{} gefunden – verwende Haupt-API-Key."
+      );
+      webhookKey = apiKey;
+    }
     lines.push("webhook:");
     lines.push(`  api_key: ${webhookKey}`);
     lines.push("  urls:");
@@ -116,16 +155,28 @@ function buildConfig(env) {
 
   lines.push("turn:");
   if (turnEnabled) {
-    lines.push("  enabled: true");
-    lines.push(
-      `  domain: ${ensureValue(env, "LIVEKIT_TURN_DOMAIN", "turn.example.com")}`
-    );
-    lines.push(`  tls_port: ${ensureValue(env, "LIVEKIT_TURN_TLS_PORT", "5349")}`);
-    lines.push(`  udp_port: ${ensureValue(env, "LIVEKIT_TURN_UDP_PORT", "3478")}`);
-    const turnUsername = ensureValue(env, "LIVEKIT_TURN_USERNAME", "livekit");
-    const turnPassword = ensureValue(env, "LIVEKIT_TURN_PASSWORD", "change-me");
-    lines.push(`  username: ${turnUsername}`);
-    lines.push(`  password: ${turnPassword}`);
+    const turnCert = env.LIVEKIT_TURN_CERT_FILE;
+    const turnKey = env.LIVEKIT_TURN_KEY_FILE;
+    if (!turnCert || !turnKey) {
+      console.warn(
+        "[setup-livekit-config] LIVEKIT_TURN_ENABLED=true, aber LIVEKIT_TURN_CERT_FILE/LIVEKIT_TURN_KEY_FILE fehlen – deaktiviere TURN."
+      );
+      lines.push("  enabled: false");
+    } else {
+      lines.push("  enabled: true");
+      lines.push(
+        `  domain: ${ensureValue(env, "LIVEKIT_TURN_DOMAIN", "turn.example.com")}`
+      );
+      lines.push(`  tls_port: ${ensureValue(env, "LIVEKIT_TURN_TLS_PORT", "5349")}`);
+      lines.push(`  udp_port: ${ensureValue(env, "LIVEKIT_TURN_UDP_PORT", "3478")}`);
+      lines.push(`  cert_file: ${resolveContainerPath(turnCert)}`);
+      lines.push(`  key_file: ${resolveContainerPath(turnKey)}`);
+      if (env.LIVEKIT_TURN_USERNAME || env.LIVEKIT_TURN_PASSWORD) {
+        console.warn(
+          "[setup-livekit-config] LIVEKIT_TURN_USERNAME/-PASSWORD sind deprecated und werden ignoriert."
+        );
+      }
+    }
   } else {
     lines.push("  enabled: false");
   }

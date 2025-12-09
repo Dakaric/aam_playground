@@ -1,4 +1,4 @@
-.PHONY: help pull dev dev-n8n dev-down dev-restart dev-logs env-dev rebuild-dev prod prod-n8n prod-down prod-restart prod-logs env-prod rebuild-prod n8n-logs update-n8n lint type format studio migrate setup setup-dev setup-prod setup-env post-setup switch-remote bootstrap-remote reset-dev-db-volume clean-prod supabase-up supabase-down supabase-restart supabase-logs supabase-reset clean-docker livekit-pull prod-stack-up
+.PHONY: help pull dev dev-n8n dev-down dev-restart dev-logs env-dev rebuild-dev prod prod-n8n prod-down prod-restart prod-logs env-prod rebuild-prod n8n-logs update-n8n lint type format studio migrate setup setup-dev setup-prod setup-env post-setup switch-remote bootstrap-remote reset-dev-db-volume clean-prod supabase-up supabase-down supabase-restart supabase-logs supabase-reset clean-docker livekit-pull prod-stack-up livekit-config
 
 ifneq (,$(wildcard .env))
 include .env
@@ -67,7 +67,7 @@ setup: setup-dev
 setup-dev:
 	@SETUP_ENV_SCOPE=dev $(SETUP_SCRIPT)
 	@SETUP_ENV_SCOPE=dev node scripts/setup-supabase-env.cjs
-	@node scripts/setup-livekit-config.cjs
+	@$(MAKE) --no-print-directory livekit-config
 	@if [ "$(RESET_DB_VOLUME_ON_SETUP)" = "true" ]; then \
 		$(MAKE) --no-print-directory reset-dev-db-volume; \
 	else \
@@ -79,7 +79,7 @@ setup-prod:
 	@$(SERVER_CHECK_SCRIPT)
 	@SETUP_ENV_SCOPE=prod $(SETUP_SCRIPT)
 	@SETUP_ENV_SCOPE=prod node scripts/setup-supabase-env.cjs
-	@node scripts/setup-livekit-config.cjs
+	@$(MAKE) --no-print-directory livekit-config
 	@$(MAKE) --no-print-directory post-setup
 	@$(MAKE) --no-print-directory clean-prod
 	@echo "⬇️  Ziehe Basis-Images für prod + n8n …"
@@ -97,7 +97,16 @@ livekit-pull:
 		true; \
 	fi
 
+livekit-config:
+	@if [ ! -f .env ]; then \
+		echo "ℹ️  .env fehlt – überspringe LiveKit-Konfiguration."; \
+	else \
+		node scripts/ensure-livekit-assets.cjs; \
+		node scripts/setup-livekit-config.cjs; \
+	fi
+
 prod-stack-up:
+	@$(MAKE) --no-print-directory livekit-config
 	@echo "🚀 Starte prod + n8n Stack frisch (inkl. Web-Rebuild) …"
 	@$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d --build --pull always
 
@@ -120,7 +129,7 @@ clean-prod:
 setup-env:
 	@node scripts/setup-env.cjs
 	@node scripts/setup-supabase-env.cjs
-	@node scripts/setup-livekit-config.cjs
+	@$(MAKE) --no-print-directory livekit-config
 	@$(MAKE) --no-print-directory post-setup
 
 post-setup:
@@ -138,9 +147,11 @@ post-setup:
 	fi
 
 dev:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) up -d
 
 dev-n8n:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(DEV_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d
 
 dev-down:
@@ -153,20 +164,25 @@ dev-logs:
 	$(COMPOSE) logs -f web-dev
 
 env-dev:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) up -d --force-recreate web-dev
 
 rebuild-dev:
 	$(COMPOSE) $(DEV_PROFILES) build --no-cache web-dev
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(DEV_PROFILES) $(LIVEKIT_PROFILES) up -d
 
 prod:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) up -d --build
 
 prod-n8n:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d --build
 
 prod-all:
 	@$(MAKE) --no-print-directory supabase-up
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(PROD_PROFILES) $(N8N_PROFILE) $(LIVEKIT_PROFILES) up -d --build
 
 prod-down:
@@ -174,16 +190,19 @@ prod-down:
 	@$(MAKE) --no-print-directory supabase-down
 
 prod-restart:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) restart
 
 prod-logs:
 	$(COMPOSE) logs -f web
 
 env-prod:
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) up -d --force-recreate web
 
 rebuild-prod:
 	$(COMPOSE) $(PROD_PROFILES) build --no-cache web
+	@$(MAKE) --no-print-directory livekit-config
 	$(COMPOSE) $(PROD_PROFILES) $(LIVEKIT_PROFILES) up -d
 
 n8n-logs:

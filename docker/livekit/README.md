@@ -27,6 +27,22 @@ Die Konfiguration umfasst u. a.:
 - Optional Webhooks (`webhook`) und Prometheus-Port
 - Optional TURN-Block (`turn.enabled`, Domain, Ports, Credentials)
 
+## Automatische Assets (Redis & TURN)
+
+- `make livekit-config` ruft zusätzlich `scripts/ensure-livekit-assets.cjs` auf.
+- Das Skript prüft `.env` und
+  - generiert bei Bedarf ein zufälliges `LIVEKIT_REDIS_PASSWORD`, sobald
+    `LIVEKIT_REDIS_AUTH_ENABLED=true` ist,
+  - legt Standardpfade für `LIVEKIT_TURN_CERT_FILE`/`LIVEKIT_TURN_KEY_FILE`
+    fest und erzeugt selbstsignierte Zertifikate (über `openssl`), sobald
+    `LIVEKIT_TURN_ENABLED=true` ist.
+- `make setup*`, `make dev*`, `make prod*`, `make env-*` rufen
+  `make livekit-config` automatisch auf. Nach Änderungen an `.env` genügt
+  daher z. B. `make env-prod`, um Web + LiveKit mit neuer Konfiguration zu
+  starten.
+- Für produktive Deployments empfiehlt es sich, die generierten TURN-Zertifikate
+  durch echte TLS-Zertifikate zu ersetzen (Dateipfade einfach in `.env` anpassen).
+
 ## Compose-Profile
 
 - Im `docker-compose.yml` existiert das Profil `livekit` mit den Services

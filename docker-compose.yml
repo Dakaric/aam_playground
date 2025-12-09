@@ -131,7 +131,17 @@ services:
     image: redis:7-alpine
     profiles:
       - livekit
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    environment:
+      LIVEKIT_REDIS_PASSWORD: ${LIVEKIT_REDIS_PASSWORD:-}
+    command:
+      - /bin/sh
+      - -c
+      - |
+        if [ -n "$LIVEKIT_REDIS_PASSWORD" ]; then
+          exec redis-server --save "" --appendonly no --requirepass "$LIVEKIT_REDIS_PASSWORD";
+        else
+          exec redis-server --save "" --appendonly no;
+        fi
     volumes:
       - livekit-redis-data:/data
     networks:
@@ -154,6 +164,25 @@ services:
       - "${LIVEKIT_RTC_UDP_PORT:-7882}:${LIVEKIT_RTC_UDP_PORT:-7882}/udp"
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - internal
+    restart: unless-stopped
+
+  voice-worker:
+    build:
+      context: ./voice-worker
+      dockerfile: Dockerfile
+    profiles:
+      - livekit
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+    depends_on:
+      livekit:
+        condition: service_started
+      n8n:
+        condition: service_started
     networks:
       - internal
     restart: unless-stopped
